@@ -1,0 +1,41 @@
+name: Release
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - os: linux
+            arch: amd64
+            ext: ""
+          - os: windows
+            arch: amd64
+            ext: ".exe"
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.24.9'
+
+    - name: Build binary
+      run: |
+        GOOS=${{ matrix.os }} GOARCH=${{ matrix.arch }} go build -o chat-tui-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.ext }} -ldflags="-s -w" ./main.go
+
+    - name: Upload release asset
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ github.event.release.upload_url }}
+        asset_path: ./chat-tui-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.ext }}
+        asset_name: chat-tui-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.ext }}
+        asset_content_type: application/octet-stream
